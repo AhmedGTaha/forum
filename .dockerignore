@@ -1,0 +1,7 @@
+.git
+.agents
+.gocache
+forum.db
+*.exe
+*.test
+Dockerfile
