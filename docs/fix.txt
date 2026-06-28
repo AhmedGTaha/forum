@@ -1,0 +1,183 @@
+Here is a clean “do this on any new Windows PC” checklist so you can reproduce the fix from scratch without guessing.
+
+---
+
+# Go + SQLite (CGO) Setup Fix for Windows
+
+## 1. Install MSYS2
+
+Download and install:
+[https://www.msys2.org/](https://www.msys2.org/)
+
+Install normally (default path recommended):
+
+```
+C:\msys64
+```
+
+---
+
+## 2. Install GCC inside MSYS2
+
+Open **MSYS2 UCRT64 terminal** (important, not the normal one)
+
+Run:
+
+```bash
+pacman -S mingw-w64-ucrt-x86_64-gcc
+```
+
+Wait until it finishes.
+
+---
+
+## 3. Find GCC path
+
+After install, GCC will be here:
+
+```
+C:\msys64\ucrt64\bin
+```
+
+Check that this file exists:
+
+```
+gcc.exe
+```
+
+---
+
+## 4. Add GCC to Windows PATH
+
+### Steps:
+
+1. Press Windows key
+2. Search:
+
+   ```
+   environment variables
+   ```
+3. Open:
+   **Edit the system environment variables**
+4. Click:
+   **Environment Variables**
+5. Under **User variables**, select:
+
+   ```
+   Path → Edit
+   ```
+6. Click:
+
+   ```
+   New
+   ```
+7. Add:
+
+```
+C:\msys64\ucrt64\bin
+```
+
+8. Click OK on everything
+
+---
+
+## 5. Restart terminal
+
+Close all PowerShell / CMD windows and reopen.
+
+---
+
+## 6. Verify GCC
+
+Run:
+
+```powershell
+gcc --version
+```
+
+If it prints version info, you are good.
+
+---
+
+## 7. Enable CGO in Go
+
+Run:
+
+```powershell
+go env -w CGO_ENABLED=1
+```
+
+Verify:
+
+```powershell
+go env CGO_ENABLED
+```
+
+Expected output:
+
+```
+1
+```
+
+---
+
+## 8. Build/run your project
+
+Inside your Go project:
+
+```powershell
+go clean -cache
+go run .
+```
+
+---
+
+# If something breaks (quick diagnosis)
+
+## GCC not found
+
+* PATH not added correctly
+* or terminal not restarted
+
+Check:
+
+```
+C:\msys64\ucrt64\bin\gcc.exe
+```
+
+---
+
+## SQLite error: "stub"
+
+* CGO still disabled → rerun:
+
+```powershell
+go env -w CGO_ENABLED=1
+```
+
+---
+
+## DB not created where expected
+
+* You are using relative path
+* Add debug print for working directory:
+
+```go
+fmt.Println(os.Getwd())
+```
+
+---
+
+# Optional better long-term option
+
+If you want zero setup on future PCs, replace driver with:
+
+```
+modernc.org/sqlite
+```
+
+No GCC, no MSYS2, no CGO.
+
+---
+
+If you want, I can also turn this into a one-command setup script for Windows so you never repeat manual steps again.
