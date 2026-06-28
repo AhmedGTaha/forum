@@ -11,10 +11,10 @@ import (
 func main () {
 	// Initialize the database
 	err := database.InitDB()
+	fmt.Println("Database initialized successfully!")
 	if err != nil {
 		log.Fatal("Failed to initialize database:", err)
 	}
-
 
 	// run the function whenever the url is /
 	http.HandleFunc("/", handlers.HomeHandler)
