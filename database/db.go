@@ -2,29 +2,64 @@ package database
 
 import (
 	"database/sql"
+	"log"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // Blank import to register the driver
 )
 
+// DB is global so our HTTP handlers can access it later
 var DB *sql.DB
 
-func InitDB() error {
+func InitDB() {
 	var err error
-
+	// Opens the database file, creating it if it doesn't exist
 	DB, err = sql.Open("sqlite3", "./forum.db")
 	if err != nil {
-		return err
+		log.Fatal("Failed to open database:", err)
 	}
 
-	// SQL query to create a table for users
-	createUsersTable := `
+	// SQL query to create all necessary tables
+	createTablesQuery := `
 	CREATE TABLE IF NOT EXISTS users (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		username TEXT UNIQUE,
-		email TEXT UNIQUE,
-		password TEXT
+		email TEXT UNIQUE NOT NULL,
+		username TEXT UNIQUE NOT NULL,
+		password TEXT NOT NULL
+	);
+	CREATE TABLE IF NOT EXISTS categories (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT UNIQUE NOT NULL
+	);
+	CREATE TABLE IF NOT EXISTS posts (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER,
+		title TEXT NOT NULL,
+		content TEXT NOT NULL,
+		FOREIGN KEY(user_id) REFERENCES users(id)
+	);
+	CREATE TABLE IF NOT EXISTS comments (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER,
+		post_id INTEGER,
+		content TEXT NOT NULL,
+		FOREIGN KEY(user_id) REFERENCES users(id),
+		FOREIGN KEY(post_id) REFERENCES posts(id)
+	);
+	CREATE TABLE IF NOT EXISTS likes (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER,
+		post_id INTEGER,
+		comment_id INTEGER,
+		is_like BOOLEAN,
+		FOREIGN KEY(user_id) REFERENCES users(id),
+		FOREIGN KEY(post_id) REFERENCES posts(id),
+		FOREIGN KEY(comment_id) REFERENCES comments(id)
 	);`
 
-	_, err = DB.Exec(createUsersTable)
-	return err
+	_, err = DB.Exec(createTablesQuery)
+	if err != nil {
+		log.Fatal("Failed to create tables:", err)
+	}
+
+	log.Println("Database and tables initialized successfully!")
 }
