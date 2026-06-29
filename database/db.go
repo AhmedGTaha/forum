@@ -7,6 +7,13 @@ import (
 	_ "github.com/mattn/go-sqlite3" // Blank import to register the driver
 )
 
+type User struct {
+	ID       int
+	Username string
+	Email    string
+	Password string
+}
+
 // DB is global so our HTTP handlers can access it later
 var DB *sql.DB
 
@@ -69,4 +76,31 @@ func InitDB() {
 	}
 
 	log.Println("Database and tables initialized successfully!")
+}
+
+// searches for one user using their email
+func GetUserByEmail(email string) (User, error) {
+	var user User
+	
+	query := `
+		SELECT id, username, email, password
+		FROM users
+		WHERE email = ?
+	`
+
+	// 1. Runs the SELECT query
+	// 2. Sends the email into the ? placeholder
+	// 3. Copies the result into the user struct
+	err := DB.QueryRow(query, email).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.Password,
+	)
+
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
 }

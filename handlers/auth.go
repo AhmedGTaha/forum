@@ -1,62 +1,128 @@
 package handlers
 
 import (
-	"fmt"
-	"forum/database"
 	"html/template"
 	"net/http"
+	"strings"
+
+	"forum/database"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-func RegisterPageHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse the template file
-	tmpl, err := template.ParseFiles("ui/register.html")
+// LoginPageHandler displays the login page.
+func LoginPageHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("ui/login.html")
 	if err != nil {
-		http.Error(w, "Could not load template", http.StatusInternalServerError)
+		http.Error(w, "Could not load login page", http.StatusInternalServerError)
 		return
 	}
 
-	// Execute the template and write to the response
-	tmpl.Execute(w, nil)
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, "Could not render login page", http.StatusInternalServerError)
+		return
+	}
 }
 
-func RegisterHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// r.FormValue: extract data from an HTML form submission
-	username := r.FormValue("username")
-	email := r.FormValue("email")
+// LoginHandler handles the submitted login form.
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	email := strings.TrimSpace(r.FormValue("email"))
 	password := r.FormValue("password")
 
-	// Hash the password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost) // create a secure hash
-	if err != nil {
-		http.Error(w, "Server error", http.StatusInternalServerError)
+	if email == "" || strings.TrimSpace(password) == "" {
+		http.Error(w, "Email and password are required", http.StatusBadRequest)
 		return
 	}
 
-	// Insert new user into database
-	queryInsertUser := "INSERT INTO users (username, email, password) VALUES (?, ?, ?)"
-	_, err = database.DB.Exec(queryInsertUser, username, email, string(hashedPassword))
+	user, err := database.GetUserByEmail(email)
 	if err != nil {
-		http.Error(w, "Username or email already exists!", http.StatusConflict)
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
 		return
 	}
 
-	fmt.Fprintf(w, "User registered successfully!")
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		http.Error(w, "Invalid email or password", http.StatusUnauthorized)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Login successful"))
 }
 
+// LoginDispatcher chooses the correct login handler based on the HTTP method.
+func LoginDispatcher(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		LoginPageHandler(w, r)
+		return
+	}
+
+	if r.Method == http.MethodPost {
+		LoginHandler(w, r)
+		return
+	}
+
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+}
+
+// RegisterPageHandler displays the registration page.
+func RegisterPageHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("ui/register.html")
+	if err != nil {
+		http.Error(w, "Could not load registration page", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.Execute(w, nil)
+	if err != nil {
+		http.Error(w, "Could not render registration page", http.StatusInternalServerError)
+		return
+	}
+}
+
+// RegisterHandler handles the submitted registration form.
+func RegisterHandler(w http.ResponseWriter, r *http.Request) {
+	username := strings.TrimSpace(r.FormValue("username"))
+	email := strings.TrimSpace(r.FormValue("email"))
+	password := r.FormValue("password")
+
+	if username == "" || email == "" || strings.TrimSpace(password) == "" {
+		http.Error(w, "Username, email, and password are required", http.StatusBadRequest)
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Could not secure password", http.StatusInternalServerError)
+		return
+	}
+
+	queryInsertUser := `
+		INSERT INTO users (username, email, password)
+		VALUES (?, ?, ?)
+	`
+
+	_, err = database.DB.Exec(queryInsertUser, username, email, string(hashedPassword))
+	if err != nil {
+		http.Error(w, "Username or email already exists", http.StatusConflict)
+		return
+	}
+
+	http.Redirect(w, r, "/login", http.StatusSeeOther)
+}
+
+// RegisterDispatcher chooses the correct registration handler based on the HTTP method.
 func RegisterDispatcher(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodGet {
-		RegisterPageHandler(w, r) // here it displays the page
-	} else if r.Method == http.MethodPost {
-		// it sends data from the html form
-		RegisterHandler(w, r) // here it sends info to db
-	} else {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		RegisterPageHandler(w, r)
+		return
 	}
+
+	if r.Method == http.MethodPost {
+		RegisterHandler(w, r)
+		return
+	}
+
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
