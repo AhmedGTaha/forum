@@ -3,21 +3,22 @@ package handlers
 import (
 	"fmt"
 	"forum/database"
-	"net/http"
 	"html/template"
+	"net/http"
+
 	"golang.org/x/crypto/bcrypt"
 )
 
 func RegisterPageHandler(w http.ResponseWriter, r *http.Request) {
-    // Parse the template file
-    tmpl, err := template.ParseFiles("ui/register.html")
-    if err != nil {
-        http.Error(w, "Could not load template", http.StatusInternalServerError)
-        return
-    }
+	// Parse the template file
+	tmpl, err := template.ParseFiles("ui/register.html")
+	if err != nil {
+		http.Error(w, "Could not load template", http.StatusInternalServerError)
+		return
+	}
 
-    // Execute the template and write to the response
-    tmpl.Execute(w, nil)
+	// Execute the template and write to the response
+	tmpl.Execute(w, nil)
 }
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +43,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	queryInsertUser := "INSERT INTO users (username, email, password) VALUES (?, ?, ?)"
 	_, err = database.DB.Exec(queryInsertUser, username, email, string(hashedPassword))
 	if err != nil {
-		http.Error(w, "Failed to register user", http.StatusInternalServerError)
+		http.Error(w, "Username or email already exists!", http.StatusConflict)
 		return
 	}
 
@@ -56,6 +57,6 @@ func RegisterDispatcher(w http.ResponseWriter, r *http.Request) {
 		// it sends data from the html form
 		RegisterHandler(w, r) // here it sends info to db
 	} else {
-	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
