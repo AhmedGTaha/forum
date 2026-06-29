@@ -5,7 +5,18 @@
     <title>Forum</title>
 </head>
 <body>
-    <h1>Welcome to the Forum</h1>
-    <p>This is the main page served from an HTML template.</p>
+    <h1>Forum</h1>
+
+    {{if .IsLoggedIn}}
+        <p>Welcome, {{.Username}}.</p>
+        <p>You are logged in.</p>
+    {{else}}
+        <p>Welcome, guest.</p>
+        <p>
+            <a href="/register">Register</a>
+            |
+            <a href="/login">Login</a>
+        </p>
+    {{end}}
 </body>
 </html>

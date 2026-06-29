@@ -5,16 +5,36 @@ import (
 	"text/template" // for the parsing thing
 )
 
+type HomePageData struct {
+	IsLoggedIn bool
+	Username   string
+}
+
 // w: to write our response back to the user's browser
 // r: incoming request from the user
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-    // Parse the template file
-    tmpl, err := template.ParseFiles("ui/index.html")
-    if err != nil {
-        http.Error(w, "Could not load template", http.StatusInternalServerError)
-        return
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
+    data := HomePageData{}
+
+    user, loggedIn := GetLoggedInUser(r)
+    if loggedIn {
+        data.IsLoggedIn = true
+        data.Username = user.Username
     }
 
-    // Execute the template and write to the response
-    tmpl.Execute(w, nil)
+	tmpl, err := template.ParseFiles("ui/index.html")
+	if err != nil {
+		http.Error(w, "Could not load home page", http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.Execute(w, data)
+	if err != nil {
+		http.Error(w, "Could not render home page", http.StatusInternalServerError)
+		return
+	}
 }
