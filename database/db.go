@@ -54,8 +54,15 @@ func InitDB() {
 		FOREIGN KEY(user_id) REFERENCES users(id),
 		FOREIGN KEY(post_id) REFERENCES posts(id),
 		FOREIGN KEY(comment_id) REFERENCES comments(id)
+	);
+	CREATE TABLE IF NOT EXISTS sessions (
+		id TEXT PRIMARY KEY,
+		user_id INTEGER,
+		expires_at DATETIME,
+		FOREIGN KEY(user_id) REFERENCES users(id)
 	);`
 
+	// executes the query
 	_, err = DB.Exec(createTablesQuery)
 	if err != nil {
 		log.Fatal("Failed to create tables:", err)
