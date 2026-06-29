@@ -11,14 +11,17 @@ import (
 
 func main() {
 	// Initialize the database before starting the server
-	database.InitDB()
+	err := database.InitDB()
+	if err != nil {
+	log.Fatal("Failed to initialize database:", err)
+	}
 
 	http.HandleFunc("/", handlers.HomeHandler)
 	http.HandleFunc("/register", handlers.RegisterDispatcher)
 	http.HandleFunc("/login", handlers.LoginDispatcher)
 
 	fmt.Println("Server is starting on http://localhost:8080...")
-	err := http.ListenAndServe(":8080", nil)
+	err = http.ListenAndServe(":8080", nil)
 	if err != nil {
 		log.Fatal(err)
 	}

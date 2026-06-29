@@ -25,6 +25,7 @@ func LoginPageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// LoginHandler handles the submitted login form
 // LoginHandler handles the submitted login form.
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	email := strings.TrimSpace(r.FormValue("email"))
@@ -47,8 +48,31 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Login successful"))
+	// delete old session for the same user
+	// create a new random session ID
+	// store it in the sessions table
+	// return the session ID and expiration time
+	sessionID, expiresAt, err := database.CreateSession(user.ID)
+	if err != nil {
+		http.Error(w, "Could not create session", http.StatusInternalServerError)
+		return
+	}
+
+	// This prepares the browser cookie
+	cookie := http.Cookie{
+		Name:     "session_id",
+		Value:    sessionID,
+		Path:     "/",
+		Expires:  expiresAt,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	}
+
+	// This sends the cookie to the browser in the HTTP response
+	http.SetCookie(w, &cookie)
+
+	// After login, the user goes back to the homepage
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 // LoginDispatcher chooses the correct login handler based on the HTTP method.
