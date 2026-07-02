@@ -89,7 +89,7 @@ func LoginDispatcher(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
 
-// Handles termination of the session and removes the session cookie from the browser.
+// LogoutHandler logs the user out by deleting the session and clearing the cookie.
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -97,32 +97,25 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cookie, err := r.Cookie("session_id")
-	if err != nil {
-		http.Error(w, "No session found", http.StatusUnauthorized)
-		return
-	}
-
 	if err == nil && cookie.Value != "" {
 		err = database.DeleteSession(cookie.Value)
 		if err != nil {
-			http.Error(w, "Could not logout", http.StatusInternalServerError)
+			http.Error(w, "Could not delete session", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	// Remove the session cookie from the browser
 	expiredCookie := http.Cookie{
 		Name:     "session_id",
 		Value:    "",
 		Path:     "/",
-		MaxAge:  -1,
+		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	}
 
 	http.SetCookie(w, &expiredCookie)
-	
-	// Redirect to the homepage after logout
+
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
