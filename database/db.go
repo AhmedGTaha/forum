@@ -293,27 +293,6 @@ func generateSessionID() (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
-// Receives the logged-in user ID, post title, and post content
-func CreatePost(userID int, title string, content string) (int64, error) {
-	query := `
-		INSERT INTO posts (user_id, title, content)
-		VALUES (?, ?, ?)
-	`
-
-	result, err := DB.Exec(query, userID, title, content)
-	if err != nil {
-		return 0, err
-	}
-
-	// This gets the ID of the post that was just created
-	postID, err := result.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-
-	return postID, nil
-}
-
 func GetAllPosts() ([]Post, error) {
 	// This joins posts with their authors, Without this, we would only have: user_id = 1 but now we have: Posted by omar
 	query := `
@@ -400,4 +379,49 @@ func GetAllCategories() ([]Category, error) {
 		return nil, err
 	}
 	return categories, nil
+}
+
+func CreatePost(userID int, title string, content string, categoryIDs []int) (int64, error) {
+	// From this point, the database changes are not final until:  tx.Commit()
+	tx, err := DB.Begin()
+	if err != nil {
+		return 0, err
+	}
+
+	insertPostQuery := `
+		INSERT INTO posts (user_id, title, content)
+		VALUES (?, ?, ?)
+	`
+	result, err := tx.Exec(insertPostQuery, userID, title, content)
+	if err != nil {
+		tx.Rollback()
+		return 0, err
+	}
+
+	postID, err := result.LastInsertId()
+	if err != nil {
+		// So if the post is created but category saving fails, the post is removed too
+		tx.Rollback()
+		return 0, err
+	}
+
+	insertPostCategoryQuery := `
+		INSERT INTO post_categories (post_id, category_id)
+		VALUES (?, ?)
+	`
+
+	for _, categoryID := range categoryIDs {
+		_, err := tx.Exec(insertPostCategoryQuery, postID, categoryID)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	return postID, nil	
 }
