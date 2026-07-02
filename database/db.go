@@ -272,3 +272,24 @@ func generateSessionID() (string, error) {
 
 	return hex.EncodeToString(bytes), nil
 }
+
+// Receives the logged-in user ID, post title, and post content
+func CreatePost(userID int, title string, content string) (int64, error) {
+	query := `
+		INSERT INTO posts (user_id, title, content)
+		VALUES (?, ?, ?)
+	`
+
+	result, err := DB.Exec(query, userID, title, content)
+	if err != nil {
+		return 0, err
+	}
+
+	// This gets the ID of the post that was just created
+	postID, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return postID, nil
+}
