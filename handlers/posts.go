@@ -10,7 +10,8 @@ import (
 
 // This is the data we send to the HTML page.
 type CreatePostPageData struct {
-	Username string
+	Username   string
+	Categories []database.Category
 }
 
 // Only logged-in users are allowed to access this page.
@@ -22,8 +23,15 @@ func CreatePostPageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	categories, err := database.GetAllCategories()
+	if err != nil {
+		http.Error(w, "Could not load categories", http.StatusInternalServerError)
+		return
+	}
+
 	data := CreatePostPageData{
-		Username: user.Username,
+		Username:   user.Username,
+		Categories: categories,
 	}
 
 	tmpl, err := template.ParseFiles("ui/create-post.html")

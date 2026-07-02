@@ -20,6 +20,18 @@
             <textarea id="content" name="content" required></textarea>
         </div>
 
+        <div>
+            <p>Categories</p>
+
+            {{range .Categories}}
+                <label>
+                    <input type="checkbox" name="categories" value="{{.ID}}">
+                    {{.Name}}
+                </label>
+                <br>
+            {{end}}
+        </div>
+
         <button type="submit">Create Post</button>
     </form>
 

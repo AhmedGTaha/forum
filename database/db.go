@@ -28,6 +28,11 @@ type Post struct {
 	CreatedAt string
 }
 
+type Category struct {
+	ID   int
+	Name string
+}
+
 var DB *sql.DB
 
 func InitDB() error {
@@ -53,6 +58,11 @@ func InitDB() error {
 	err = createTables()
 	if err != nil {
 		return err
+	}
+
+	err = SeedDefaultCategories()
+	if err != nil {
+		return fmt.Errorf("seed default categories: %w", err)
 	}
 
 	fmt.Println("Database initialized successfully!")
@@ -336,4 +346,58 @@ func GetAllPosts() ([]Post, error) {
 		return nil, err
 	}
 	return posts, nil
+}
+
+func SeedDefaultCategories() error {
+	defaultCategories := []string{
+		"General",
+		"Go",
+		"Web",
+		"Database",
+		"Help",
+		"Other",
+	}
+
+	query := `
+		INSERT OR IGNORE INTO categories (name)
+		VALUES (?)
+	`
+
+	for _, category := range defaultCategories {
+		_, err := DB.Exec(query, category)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func GetAllCategories() ([]Category, error) {
+	query := `
+		SELECT id, name
+		FROM categories
+		ORDER BY name ASC
+	`
+
+	rows, err:= DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var categories []Category
+	for rows.Next() {
+		var category Category
+		err := rows.Scan(&category.ID, &category.Name)
+		if err != nil {
+			return nil, err
+		}
+		categories = append(categories, category)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+	return categories, nil
 }
