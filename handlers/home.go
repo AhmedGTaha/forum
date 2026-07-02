@@ -1,13 +1,17 @@
 package handlers
 
+
 import (
+	"html/template"
 	"net/http"
-	"text/template" // for the parsing thing
+
+	"forum/database"
 )
 
 type HomePageData struct {
 	IsLoggedIn bool
 	Username   string
+	Posts 	[]database.Post
 }
 
 // w: to write our response back to the user's browser
@@ -25,6 +29,13 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
         data.IsLoggedIn = true
         data.Username = user.Username
     }
+
+	posts, err := database.GetAllPosts()
+	if err != nil {
+		http.Error(w, "Could not load posts", http.StatusInternalServerError)
+		return
+	}
+	data.Posts = posts
 
 	tmpl, err := template.ParseFiles("ui/index.html")
 	if err != nil {

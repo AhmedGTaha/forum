@@ -18,6 +18,16 @@ type User struct {
 	Password string
 }
 
+// post we want to display
+type Post struct {
+	ID        int
+	UserID    int
+	Username  string
+	Title     string
+	Content   string
+	CreatedAt string
+}
+
 var DB *sql.DB
 
 func InitDB() error {
@@ -292,4 +302,38 @@ func CreatePost(userID int, title string, content string) (int64, error) {
 	}
 
 	return postID, nil
+}
+
+func GetAllPosts() ([]Post, error) {
+	// This joins posts with their authors, Without this, we would only have: user_id = 1 but now we have: Posted by omar
+	query := `
+		SELECT posts.id, posts.user_id, users.username, posts.title, posts.content, posts.created_at
+		FROM posts
+		INNER JOIN users ON posts.user_id = users.id
+		ORDER BY posts.created_at DESC
+	`
+
+	rows, err := DB.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	// makes sure the database rows are closed after we finish reading them
+	defer rows.Close()
+
+	var posts []Post
+
+	for rows.Next() {
+		var post Post
+		err := rows.Scan(&post.ID, &post.UserID, &post.Username, &post.Title, &post.Content, &post.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		posts = append(posts, post)
+	}
+
+	// This checks if something went wrong while looping through rows
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return posts, nil
 }
