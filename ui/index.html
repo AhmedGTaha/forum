@@ -10,8 +10,13 @@
     {{if .IsLoggedIn}}
         <p>Welcome, {{.Username}}.</p>
         <p>You are logged in.</p>
+
+        <form action="/logout" method="POST">
+            <button type="submit">Logout</button>
+        </form>
     {{else}}
         <p>Welcome, guest.</p>
+
         <p>
             <a href="/register">Register</a>
             |
